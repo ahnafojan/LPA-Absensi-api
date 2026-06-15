@@ -44,3 +44,7 @@ export const parseOptionalJsonBody = async <T>(
 
   return parseJsonBody(c, schema);
 };
+
+export const parseQuery = <T>(c: Context, schema: ZodType<T>): T => {
+  return validate(schema, c.req.query());
+};

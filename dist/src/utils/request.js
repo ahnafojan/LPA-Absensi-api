@@ -28,4 +28,7 @@ export const parseOptionalJsonBody = async (c, schema) => {
     }
     return parseJsonBody(c, schema);
 };
+export const parseQuery = (c, schema) => {
+    return validate(schema, c.req.query());
+};
 //# sourceMappingURL=request.js.map
