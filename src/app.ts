@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { serveStatic } from "@hono/node-server/serve-static";
 import { cors } from "hono/cors";
 import { routes } from "./routes/index.js";
 import type { AppEnv } from "./types/auth.js";
@@ -15,6 +16,8 @@ app.use(
     allowMethods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
   }),
 );
+
+app.use("/uploads/*", serveStatic({ root: "./" }));
 
 app.get("/", (c) => {
   return successResponse(c, {

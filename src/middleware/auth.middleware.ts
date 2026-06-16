@@ -25,7 +25,11 @@ export const authMiddleware = createMiddleware<AppEnv>(async (c, next) => {
     },
   });
 
-  if (!user?.isActive) {
+  if (!user) {
+    throw new AppError(404, "User tidak ditemukan");
+  }
+
+  if (!user.isActive) {
     throw new AppError(401, "Sesi tidak valid");
   }
 

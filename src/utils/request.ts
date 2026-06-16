@@ -6,7 +6,15 @@ const validate = <T>(schema: ZodType<T>, body: unknown): T => {
   const result = schema.safeParse(body);
 
   if (!result.success) {
-    throw new AppError(422, "Validasi request gagal", result.error.flatten());
+    const flattened = result.error.flatten();
+    const errors = {
+      ...flattened.fieldErrors,
+      ...(flattened.formErrors.length > 0
+        ? { _form: flattened.formErrors }
+        : {}),
+    };
+
+    throw new AppError(422, "Validasi gagal", errors);
   }
 
   return result.data;

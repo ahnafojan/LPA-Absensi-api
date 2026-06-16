@@ -7,8 +7,78 @@ const employeeStatusSchema = z.enum([
   "PERLU_REVIEW",
 ]);
 
-export const createEmployeeBodySchema = z
-  .object({
+const readString = (value: unknown) => {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+};
+
+const resolveNamedReference = (value: unknown) => {
+  if (typeof value === "string") {
+    return { name: readString(value) };
+  }
+
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const record = value as Record<string, unknown>;
+
+    return {
+      id: readString(record.id),
+      name:
+        readString(record.name) ??
+        readString(record.nama) ??
+        readString(record.label),
+    };
+  }
+
+  return {};
+};
+
+const normalizeEmployeeStatus = (value: unknown) => {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  return value.trim().toUpperCase();
+};
+
+const normalizeCreateEmployeeBody = (body: unknown) => {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return body;
+  }
+
+  const payload = { ...(body as Record<string, unknown>) };
+
+  payload.namaLengkap ??=
+    readString(payload.nama) ??
+    readString(payload.name) ??
+    readString(payload.fullName);
+  payload.nik ??= readString(payload.NIK);
+  payload.photoUrl ??= readString(payload.photoUri);
+  payload.status = normalizeEmployeeStatus(payload.status ?? "AKTIF");
+
+  const divisi = resolveNamedReference(payload.divisi);
+  const division = resolveNamedReference(payload.division);
+  const jabatan = resolveNamedReference(payload.jabatan);
+  const position = resolveNamedReference(payload.position);
+
+  payload.divisiId ??= readString(payload.divisionId) ?? divisi.id ?? division.id;
+  payload.divisiName ??=
+    readString(payload.divisionName) ??
+    readString(payload.namaDivisi) ??
+    divisi.name ??
+    division.name;
+  payload.jabatanId ??= readString(payload.positionId) ?? jabatan.id ?? position.id;
+  payload.jabatanName ??=
+    readString(payload.positionName) ??
+    readString(payload.namaJabatan) ??
+    jabatan.name ??
+    position.name;
+
+  return payload;
+};
+
+export const createEmployeeBodySchema = z.preprocess(
+  normalizeCreateEmployeeBody,
+  z
+    .object({
     namaLengkap: z.string().trim().min(2, "Nama lengkap wajib diisi"),
     username: z
       .string()
@@ -27,24 +97,25 @@ export const createEmployeeBodySchema = z
     jabatanName: z.string().trim().min(1).optional(),
     status: employeeStatusSchema.default("AKTIF"),
     photoUrl: z.string().url("URL foto tidak valid").nullable().optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (Boolean(data.divisiId) === Boolean(data.divisiName)) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["divisiId"],
-        message: "Isi salah satu: divisiId atau divisiName",
-      });
-    }
+    })
+    .superRefine((data, ctx) => {
+      if (Boolean(data.divisiId) === Boolean(data.divisiName)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["divisiId"],
+          message: "Isi salah satu: divisiId atau divisiName",
+        });
+      }
 
-    if (Boolean(data.jabatanId) === Boolean(data.jabatanName)) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["jabatanId"],
-        message: "Isi salah satu: jabatanId atau jabatanName",
-      });
-    }
-  });
+      if (Boolean(data.jabatanId) === Boolean(data.jabatanName)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["jabatanId"],
+          message: "Isi salah satu: jabatanId atau jabatanName",
+        });
+      }
+    }),
+);
 
 export type CreateEmployeeBody = z.infer<typeof createEmployeeBodySchema>;
 

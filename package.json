@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
+    "test": "tsx --test tests/izin.service.test.ts",
     "start": "node dist/src/index.js",
     "typecheck": "tsc --noEmit",
     "seed": "tsx prisma/seed.ts",

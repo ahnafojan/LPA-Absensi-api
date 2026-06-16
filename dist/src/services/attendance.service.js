@@ -233,6 +233,37 @@ export const attendanceService = {
                     : null,
             };
         }
+        const approvedIzin = await prisma.izin.findFirst({
+            where: {
+                employeeId,
+                status: "DISETUJUI",
+                tanggalMulai: {
+                    lt: tomorrow,
+                },
+                OR: [
+                    {
+                        tanggalSelesai: null,
+                    },
+                    {
+                        tanggalSelesai: {
+                            gte: today,
+                        },
+                    },
+                ],
+            },
+        });
+        if (approvedIzin) {
+            return {
+                id: null,
+                date: today,
+                status: "IZIN",
+                checkInAt: null,
+                checkOutAt: null,
+                lateMinutes: 0,
+                note: approvedIzin.keterangan,
+                shift: schedule?.shift ?? null,
+            };
+        }
         const approvedLeave = await prisma.leaveRequest.findFirst({
             where: {
                 employeeId,

@@ -22,6 +22,7 @@ model User {
   refreshTokens RefreshToken[]
   announcements Announcement[] @relation("CreatedBy")
   reviewedLeaves LeaveRequest[] @relation("ReviewedBy")
+  approvedIzin Izin[] @relation("ApprovedIzin")
 
   @@index([username])
 }
@@ -48,6 +49,7 @@ model Employee {
   attendances Attendance[]
   schedules   Schedule[]
   leaveRequests LeaveRequest[]
+  izinRequests Izin[]
 
   @@index([nik])
 }
@@ -169,6 +171,44 @@ enum LeaveType {
 }
 
 enum LeaveStatus {
+  MENUNGGU
+  DISETUJUI
+  DITOLAK
+}
+
+model Izin {
+  id              String     @id @default(cuid())
+  employeeId      String
+  tipe            IzinTipe
+  label           String
+  keterangan      String
+  tanggalMulai    DateTime
+  tanggalSelesai  DateTime?
+  status          IzinStatus @default(MENUNGGU)
+  alasanPenolakan String?
+  approvedBy      String?
+  approvedAt      DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+  approver User?    @relation("ApprovedIzin", fields: [approvedBy], references: [id])
+
+  @@index([employeeId])
+  @@index([status])
+  @@index([tipe])
+  @@index([tanggalMulai, tanggalSelesai])
+}
+
+enum IzinTipe {
+  SAKIT
+  CUTI
+  KEPERLUAN_PRIBADI
+  DUKA
+  LAINNYA
+}
+
+enum IzinStatus {
   MENUNGGU
   DISETUJUI
   DITOLAK

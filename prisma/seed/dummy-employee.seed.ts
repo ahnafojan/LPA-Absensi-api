@@ -26,7 +26,6 @@ const dummyEmployees = [
     namaLengkap: "Andi Saputra",
     divisi: "Produksi - Line 4",
     jabatan: "Operator",
-    attendance: { status: "HADIR", checkIn: "06:54", lateMinutes: 0 },
   },
   {
     username: "budi.kusuma",
@@ -34,7 +33,6 @@ const dummyEmployees = [
     namaLengkap: "Budi Kusuma",
     divisi: "Logistik",
     jabatan: "Staff Gudang",
-    attendance: { status: "TERLAMBAT", checkIn: "07:28", lateMinutes: 28 },
   },
   {
     username: "citra.triana",
@@ -42,7 +40,6 @@ const dummyEmployees = [
     namaLengkap: "Citra Triana",
     divisi: "HR & Admin",
     jabatan: "Admin",
-    attendance: { status: "IZIN", checkIn: null, lateMinutes: 0 },
   },
   {
     username: "dedi.riswan",
@@ -50,7 +47,6 @@ const dummyEmployees = [
     namaLengkap: "Dedi Riswan",
     divisi: "Quality Control",
     jabatan: "QC Staff",
-    attendance: { status: "BELUM_ABSEN", checkIn: null, lateMinutes: 0 },
   },
   {
     username: "eka.mahendra",
@@ -58,7 +54,6 @@ const dummyEmployees = [
     namaLengkap: "Eka Mahendra",
     divisi: "Produksi - Line 2",
     jabatan: "Operator",
-    attendance: { status: "HADIR", checkIn: "06:58", lateMinutes: 0 },
   },
   {
     username: "fajar.nugroho",
@@ -66,14 +61,87 @@ const dummyEmployees = [
     namaLengkap: "Fajar Nugroho",
     divisi: "Produksi - Line 1",
     jabatan: "Operator",
-    attendance: { status: "ALFA", checkIn: null, lateMinutes: 0 },
   },
 ] as const;
 
-const today = () => {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-};
+const attendanceEmployeeNiks = [
+  ...dummyEmployees.map((employee) => employee.nik),
+  "202301087",
+] as const;
+
+const june2026Start = () => new Date(2026, 5, 1);
+const july2026Start = () => new Date(2026, 6, 1);
+const attendanceRangeStart = () => new Date(2026, 5, 16);
+const attendanceRangeEnd = () => new Date(2026, 5, 31);
+
+const attendanceDailyStatuses = [
+  {
+    day: 16,
+    statuses: ["HADIR", "TERLAMBAT", "IZIN", "BELUM_ABSEN", "HADIR", "ALFA", "HADIR"],
+  },
+  {
+    day: 17,
+    statuses: ["TERLAMBAT", "HADIR", "TERLAMBAT", "IZIN", "ALFA", "HADIR", "BELUM_ABSEN"],
+  },
+  {
+    day: 18,
+    statuses: ["HADIR", "HADIR", "TERLAMBAT", "HADIR", "IZIN", "BELUM_ABSEN", "ALFA"],
+  },
+  {
+    day: 19,
+    statuses: ["IZIN", "TERLAMBAT", "HADIR", "HADIR", "BELUM_ABSEN", "HADIR", "HADIR"],
+  },
+  {
+    day: 20,
+    statuses: ["BELUM_ABSEN", "BELUM_ABSEN", "HADIR", "TERLAMBAT", "HADIR", "IZIN", "TERLAMBAT"],
+  },
+  {
+    day: 21,
+    statuses: ["BELUM_ABSEN", "IZIN", "HADIR", "ALFA", "TERLAMBAT", "BELUM_ABSEN", "IZIN"],
+  },
+  {
+    day: 22,
+    statuses: ["HADIR", "HADIR", "BELUM_ABSEN", "IZIN", "ALFA", "TERLAMBAT", "HADIR"],
+  },
+  {
+    day: 23,
+    statuses: ["TERLAMBAT", "ALFA", "HADIR", "HADIR", "IZIN", "TERLAMBAT", "TERLAMBAT"],
+  },
+  {
+    day: 24,
+    statuses: ["HADIR", "IZIN", "TERLAMBAT", "BELUM_ABSEN", "HADIR", "ALFA", "HADIR"],
+  },
+  {
+    day: 25,
+    statuses: ["ALFA", "HADIR", "IZIN", "TERLAMBAT", "BELUM_ABSEN", "HADIR", "IZIN"],
+  },
+  {
+    day: 26,
+    statuses: ["HADIR", "TERLAMBAT", "BELUM_ABSEN", "HADIR", "IZIN", "ALFA", "HADIR"],
+  },
+  {
+    day: 27,
+    statuses: ["IZIN", "HADIR", "ALFA", "BELUM_ABSEN", "TERLAMBAT", "HADIR", "ALFA"],
+  },
+  {
+    day: 28,
+    statuses: ["BELUM_ABSEN", "TERLAMBAT", "HADIR", "IZIN", "ALFA", "HADIR", "BELUM_ABSEN"],
+  },
+  {
+    day: 29,
+    statuses: ["HADIR", "HADIR", "TERLAMBAT", "ALFA", "IZIN", "BELUM_ABSEN", "HADIR"],
+  },
+  {
+    day: 30,
+    statuses: ["TERLAMBAT", "BELUM_ABSEN", "IZIN", "HADIR", "HADIR", "ALFA", "TERLAMBAT"],
+  },
+] as const;
+
+type SeedAttendanceStatus =
+  (typeof attendanceDailyStatuses)[number]["statuses"][number];
+
+const attendanceCheckInTimes = ["06:52", "06:55", "06:58", "07:00"] as const;
+const lateCheckInTimes = ["07:12", "07:18", "07:25", "07:32"] as const;
 
 const withTime = (date: Date, time: string | null) => {
   if (!time) return null;
@@ -82,6 +150,70 @@ const withTime = (date: Date, time: string | null) => {
   const result = new Date(date);
   result.setHours(hour ?? 0, minute ?? 0, 0, 0);
   return result;
+};
+
+const getAttendancePayload = (
+  date: Date,
+  status: SeedAttendanceStatus,
+  employeeIndex: number,
+  day: number,
+) => {
+  if (status === "HADIR") {
+    const checkIn =
+      attendanceCheckInTimes[(employeeIndex + day) % attendanceCheckInTimes.length] ??
+      "06:55";
+
+    return {
+      status,
+      checkInAt: withTime(date, checkIn),
+      checkOutAt: withTime(date, "15:05"),
+      lateMinutes: 0,
+      note: null,
+    };
+  }
+
+  if (status === "TERLAMBAT") {
+    const checkIn =
+      lateCheckInTimes[(employeeIndex + day) % lateCheckInTimes.length] ??
+      "07:15";
+    const lateMinutes = Number(checkIn.slice(3, 5));
+
+    return {
+      status,
+      checkInAt: withTime(date, checkIn),
+      checkOutAt: withTime(date, "15:10"),
+      lateMinutes,
+      note: `Terlambat ${lateMinutes} menit`,
+    };
+  }
+
+  if (status === "IZIN") {
+    return {
+      status,
+      checkInAt: null,
+      checkOutAt: null,
+      lateMinutes: 0,
+      note: "Izin dummy seed",
+    };
+  }
+
+  if (status === "ALFA") {
+    return {
+      status,
+      checkInAt: null,
+      checkOutAt: null,
+      lateMinutes: 0,
+      note: "Tidak hadir tanpa keterangan",
+    };
+  }
+
+  return {
+    status,
+    checkInAt: null,
+    checkOutAt: null,
+    lateMinutes: 0,
+    note: null,
+  };
 };
 
 const findOrCreatePosition = async (name: string) => {
@@ -132,6 +264,7 @@ export const seedDummyEmployees = async () => {
   }
 
   const employeeIds: string[] = [];
+  const employeeIdByNik = new Map<string, string>();
 
   for (const item of dummyEmployees) {
     const division = await prisma.division.findUniqueOrThrow({
@@ -158,6 +291,7 @@ export const seedDummyEmployees = async () => {
     });
 
     employeeIds.push(employee.id);
+    employeeIdByNik.set(item.nik, employee.id);
 
     await prisma.user.upsert({
       where: { username: item.username },
@@ -175,31 +309,6 @@ export const seedDummyEmployees = async () => {
         isActive: true,
       },
     });
-
-    const date = today();
-
-    await prisma.attendance.upsert({
-      where: {
-        employeeId_date: {
-          employeeId: employee.id,
-          date,
-        },
-      },
-      update: {
-        status: item.attendance.status,
-        checkInAt: withTime(date, item.attendance.checkIn),
-        lateMinutes: item.attendance.lateMinutes,
-        source: "DUMMY",
-      },
-      create: {
-        employeeId: employee.id,
-        date,
-        status: item.attendance.status,
-        checkInAt: withTime(date, item.attendance.checkIn),
-        lateMinutes: item.attendance.lateMinutes,
-        source: "DUMMY",
-      },
-    });
   }
 
   const mainEmployee = await prisma.employee.findUnique({
@@ -208,14 +317,19 @@ export const seedDummyEmployees = async () => {
 
   if (mainEmployee) {
     employeeIds.push(mainEmployee.id);
+    employeeIdByNik.set("202301087", mainEmployee.id);
   }
 
-  const monthStart = new Date(today().getFullYear(), today().getMonth(), 1);
-  const nextMonthStart = new Date(today().getFullYear(), today().getMonth() + 1, 1);
+  const monthStart = june2026Start();
+  const nextMonthStart = july2026Start();
+  const rangeStart = attendanceRangeStart();
+  const rangeEnd = attendanceRangeEnd();
   const shiftPagi = shiftMap.get("Shift Pagi");
+  const shiftSiang = shiftMap.get("Shift Siang");
+  const shiftMalam = shiftMap.get("Shift Malam");
   const shiftLibur = shiftMap.get("Libur");
 
-  if (shiftPagi && shiftLibur) {
+  if (shiftPagi && shiftSiang && shiftMalam && shiftLibur) {
     await prisma.schedule.deleteMany({
       where: {
         employeeId: { in: employeeIds },
@@ -229,15 +343,22 @@ export const seedDummyEmployees = async () => {
     const schedules = [];
 
     for (
-      let date = new Date(monthStart);
-      date < nextMonthStart;
+      let date = new Date(rangeStart);
+      date < rangeEnd;
       date.setDate(date.getDate() + 1)
     ) {
       const day = date.getDay();
       const isWeekend = day === 0 || day === 6;
-      const shiftId = isWeekend ? shiftLibur.id : shiftPagi.id;
 
-      for (const employeeId of employeeIds) {
+      for (const [employeeIndex, employeeId] of employeeIds.entries()) {
+        const weekdayShifts = [shiftPagi, shiftSiang, shiftMalam] as const;
+        const weekdayShift =
+          weekdayShifts[(date.getDate() + employeeIndex) % weekdayShifts.length] ??
+          shiftPagi;
+        const shiftId = isWeekend
+          ? shiftLibur.id
+          : weekdayShift.id;
+
         schedules.push({
           employeeId,
           shiftId,
@@ -253,59 +374,50 @@ export const seedDummyEmployees = async () => {
     });
   }
 
-  if (mainEmployee) {
-    const historyStatuses = [
-      "HADIR",
-      "HADIR",
-      "TERLAMBAT",
-      "HADIR",
-      "IZIN",
-      "HADIR",
-      "ALFA",
-      "HADIR",
-      "TERLAMBAT",
-      "HADIR",
-      "HADIR",
-      "IZIN",
-      "HADIR",
-      "BELUM_ABSEN",
-    ] as const;
+  await prisma.attendance.deleteMany({
+    where: {
+      employeeId: { in: employeeIds },
+      source: "DUMMY",
+      date: {
+        gte: monthStart,
+        lt: nextMonthStart,
+      },
+    },
+  });
 
-    for (let index = 0; index < historyStatuses.length; index += 1) {
-      const date = today();
-      date.setDate(date.getDate() - (index + 1));
+  let attendanceRows = 0;
 
-      const status = historyStatuses[index];
-      const isLate = status === "TERLAMBAT";
-      const hasCheckIn = status === "HADIR" || status === "TERLAMBAT";
+  for (const dailyStatus of attendanceDailyStatuses) {
+    const date = new Date(2026, 5, dailyStatus.day);
 
-      await prisma.attendance.upsert({
-        where: {
-          employeeId_date: {
-            employeeId: mainEmployee.id,
-            date,
-          },
-        },
-        update: {
-          status,
-          checkInAt: hasCheckIn ? withTime(date, isLate ? "07:20" : "06:55") : null,
-          lateMinutes: isLate ? 20 : 0,
-          source: "DUMMY",
-        },
-        create: {
-          employeeId: mainEmployee.id,
+    for (const [employeeIndex, nik] of attendanceEmployeeNiks.entries()) {
+      const employeeId = employeeIdByNik.get(nik);
+      const status = dailyStatus.statuses[employeeIndex];
+
+      if (!employeeId || !status) {
+        continue;
+      }
+
+      const payload = getAttendancePayload(date, status, employeeIndex, dailyStatus.day);
+
+      await prisma.attendance.create({
+        data: {
+          employeeId,
           date,
-          status,
-          checkInAt: hasCheckIn ? withTime(date, isLate ? "07:20" : "06:55") : null,
-          lateMinutes: isLate ? 20 : 0,
+          ...payload,
           source: "DUMMY",
         },
       });
+
+      attendanceRows += 1;
     }
   }
 
   return {
     employees: dummyEmployees.length,
     schedulesForEmployees: employeeIds.length,
+    attendanceRows,
+    attendanceFrom: "2026-06-16",
+    attendanceTo: "2026-06-30",
   };
 };
